@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"> 
+    <title>MIE Indoor Map</title>
+
+    <link rel="stylesheet" href="leaflet.css" />
+
+    <!--[if lte IE 8]><link rel="stylesheet" href="libs/leaflet.ie.css" /><![endif]-->
+
+    <style type="text/css">
+        body {
+          padding: 0;
+          margin: 0;
+        }
+
+        html, body, #map {
+          height: 100%;
+        }
+
+        .info {
+            width: 150px;
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(200,200,220,0.7);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="jquery.min.js"></script>
+    <script src="leaflet-src.js"></script>
+    <script src="leaflet-indoor.js"></script>
+	 <script src="data.js"></script>
+    <script type="text/JavaScript">
+
+        // Create the map
+        var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            osm = new L.TileLayer(osmUrl, {
+                maxZoom: 22,
+                attribution: "Map data &copy; OpenStreetMap contributors"
+            });
+
+        var map = new L.Map('map', {
+            layers: [osm],
+            center: new L.LatLng(47.42890017596256, 19.207148551940918),
+            zoom: 19
+        });
+
+
+
+        //$.getJSON("data.json", function(geoJSON) { // KL vég
+
+            var indoorLayer = new L.Indoor(geoJSON, {
+                getLevel: function(feature) { 
+                    if (feature.properties.relations.length === 0)
+                        return null;
+
+                    return feature.properties.relations[0].reltags.level;
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup('ID: '+feature.properties.id + '<br/>Helység név: ' +
+					feature.properties.tags.name   +'<br />széleség: ' +
+					feature.properties.tags.height +'<br />hosszúság: ' +
+					feature.properties.tags.height	);
+                },
+                style: function(feature) {
+                    var fill = 'white';
+
+                    if (feature.properties.tags.buildingpart === 'corridor') { // folyosó kék
+                        fill = '#169EC6';
+                    } else if (feature.properties.tags.buildingpart === 'verticalpassage') {  // Lift fekete
+                        fill = '#0A485B';
+                    }
+
+                    return {
+                        fillColor: fill,
+                        weight: 1,
+                        color: '#666',
+                        fillOpacity: 1
+                    };
+                }
+            });
+
+            indoorLayer.setLevel("0");
+
+            indoorLayer.addTo(map);
+
+            var levelControl = new L.Control.Level({
+                level: "0",
+                levels: indoorLayer.getLevels()
+            });
+
+            // Connect the level control to the indoor layer
+            levelControl.addEventListener("levelchange", indoorLayer.setLevel, indoorLayer);
+
+            levelControl.addTo(map);
+        //});  //  KL vég
+
+        var legend = L.control({position: 'topright'});
+
+        legend.onAdd = function(map) {
+            var d = "A http://mierdekel.hu WEB lap indoor map példája " +
+                    " A jobb also sarokban váltható az emelet " +
+                    " A részalaprajz nagyítható, ... " +
+                    " A rész alaprajz területe információt jelenit meg. " +
+                    " MIE TIM. " ;
+
+            var div = L.DomUtil.create('div', 'info legend');
+
+            div.appendChild(document.createTextNode(d));
+
+            return div;
+        };
+
+        legend.addTo(map);
+    </script>
+</body>
+</html>
